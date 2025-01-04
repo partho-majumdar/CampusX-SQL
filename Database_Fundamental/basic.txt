@@ -1,0 +1,72 @@
+~ Database usages
+    - Data storage
+    - Data analysis
+    - Record keeping
+    - Web application
+
+~ Properties of an ideal databases:
+    1. Integrity (Accuracy + Consistency)
+    2. Availability (24/7 runtime)
+    3. Security 
+    4. Independent of application 
+    5. Concurrency (Parallel use -> at the same time give all request response)
+
+~ Different types of databases
+    1. Relational / RDBMS / SQL -> organize data into table with rows and columns
+    2. NoSql / MongoDB -> designed to handle large amount of unstructured or semi-structured data such as documents, images, videos
+    3. Column -> store data in column rather than rows
+    4. Graph -> used to store and query graph structured data such as recommendation system
+    5. Key-Value -> store data as a collection of keys and values
+
+~ In relational database
+    - column -> attribute / fields
+    - no. of column -> degree (number of col 5 = degree 5)
+    - row -> tuples / records
+    - no. of rows -> cardinality (number of row 4 = cardinality 4)
+    - missing value -> null 
+
+~ DBMS (Database Management Program)
+    - To run any database need a software which in known as DBMS (DBMS management guy who control database)
+    - data store in hardware (HDD / SSD) for that if i want to control it we need operating system
+
+~ Function of DBMS
+    - Data management
+    - Control Integrity (Maintain accuracy of data)
+    - Concurrency (simultaneous data access from multiple users)
+    - Transaction (if transaction fail it will automatically return)
+    - Security
+    - Utility 
+
+~ Database keys **** (key is column or set of columns that uniquely identifies row in a table)
+    1. Super key -> combination of column that uniquely identifies any row within a RDBMS table 
+        - id, email, id + name, roll + branch, roll + email == key
+        - name + branch != key
+        - name + branch + email, name + branch + id, name + branch + id + email = key 
+    
+    2. Candidate key -> smallest set of attribute (no redundant attribute)
+        - id, email = candidate key
+        - id + name, id + email, id + branch, name + branch + email, name + branch + id, name + branch + id + email != candidate key
+    
+    3. Primary key -> from candidate key which became main key
+        - cannot be null
+        - cannot be duplicate
+        - it should be numeric
+        - it should be small
+        - it should be constant
+        ex: from "id" & "email" -> "id" is Primary key 
+    
+    4. Alternate key -> candidate key that not used in primary key
+        - Candidate key - Primary key = Alternate key
+        ex: from "id" & "email" -> "email" is Alternate key 
+
+    5. Composite key -> is primary key that made with two or more attribute
+    
+    6. Surrogate key -> not exist but i made because i need it 
+        - name - branch - cgpa (there is no such combination that became a primary key so i made a key column "student_id" here it is a surrogate key)
+    
+    7. Foreign key -> primary key from one table that used to establish a relationship with another table
+
+~ Cardinality of relationship
+    - One-to-One (1 table)
+    - One-to-Many (2 table)
+    - Many-to-Many (3 table)
