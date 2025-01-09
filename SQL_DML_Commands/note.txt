@@ -1,0 +1,153 @@
+~ ~ ~ ---------- INSERT Query ---------- ~ ~ ~
+
+Database == Schema
+
+CREATE DATABASE dmlcampusx
+
+CREATE TABLE users (
+	user_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+)
+
+# R - 01
+INSERT INTO dmlcampusx.users (user_id, name, email, password)
+VALUES(NULL, 'partho', 'partho@gmail.com', '1234') 
+
+# R - 02
+INSERT INTO dmlcampusx.users
+VALUES(NULL, 'pappu', 'pappu@gmail.com', '4342')
+
+    - if want to pass only name or email 
+INSERT INTO dmlcampusx.users(name, email) VALUES ('tinku', 'tinku@gmail.com')
+
+    - another way of INSERT 
+INSERT INTO dmlcampusx.users(password, name)
+VALUES(36278, 'ohaio')
+
+    - add multiple row
+INSERT INTO dmlcampusx.users VALUES
+(NULL, 'aa', 'a@gmail.com', 8392),
+(NULL, 'bb', 'b@gmail.com', 3678),
+(NULL, 'cc', 'c@gmail.com', 7202)
+
+
+~ ~ ~ ---------- SELECT Query ---------- ~ ~ ~
+
+    -- SELECT all --
+SELECT * FROM dmlcampusx.smartphones WHERE 1
+
+    -- Filter columns (order not matter) --
+SELECT model, price, rating FROM dmlcampusx.smartphones WHERE 1
+
+    -- Rename column / alias -- 
+ SELECT os AS 'Operating System', model, battery_capacity AS 'mAh' FROM dmlcampusx.smartphones WHERE 1
+
+    -- Create expression using column -- 
+SELECT model, (SQRT((resolution_width*resolution_width) + (resolution_height*resolution_height)) / screen_size) AS 'ppi' FROM dmlcampusx.smartphones WHERE 1
+
+    -- Constant column -- 
+SELECT model, 'smartphones' AS 'type' FROM dmlcampusx.smartphones WHERE 1 
+
+    -- Distinct (unique) value from column -- 
+SELECT DISTINCT (os) AS 'all_processors' FROM dmlcampusx.smartphones WHERE 1
+SELECT DISTINCT (brand_name) AS 'All Brand' FROM dmlcampusx.smartphones WHERE 1
+
+    -- Distinct (unique) combination from column -- 
+SELECT DISTINCT brand_name, processor_brand FROM dmlcampusx.smartphones WHERE 1 
+
+    -- Filter rows based on where clause -- 
+    - Find all brand_name = Samsung
+SELECT * FROM dmlcampusx.smartphones WHERE brand_name = 'samsung' 
+
+    - Find all phone with price > 50000
+SELECT * FROM dmlcampusx.smartphones WHERE price > 50000
+
+    - Find all phone with price range 10000 - 20000 (using BETWEEN)
+#R-01
+SELECT * FROM dmlcampusx.smartphones WHERE price > 10000 AND price < 20000
+
+#R-02
+SELECT * FROM dmlcampusx.smartphones WHERE price BETWEEN 10000 AND 20000
+
+    - Find phone with rating > 80 and price < 25000
+SELECT * FROM dmlcampusx.smartphones WHERE price < 25000 AND rating > 80 AND processor_brand = 'samsung'
+
+    - Find all samsung phone with ram > 8gb
+ SELECT * FROM dmlcampusx.smartphones WHERE brand_name = 'samsung' AND ram_capacity > 8
+
+    - Find all samsung phone with snapdragon processor
+ SELECT * FROM dmlcampusx.smartphones WHERE brand_name = 'samsung' AND processor_brand = 'snapdragon'
+
+    -- Query execution order --
+FROM -> JOIN -> WHERE -> GROUP BY -> HAVING -> SELECT -> DISTINCT -> ORDER BY
+
+    - Find brands who sell phone with price > 50000
+SELECT DISTINCT (brand_name) FROM dmlcampusx.smartphones WHERE price > 50000
+
+    -- In and Not In --
+SELECT * FROM dmlcampusx.smartphones WHERE processor_brand IN ('snapdragon', 'exynos', 'bionic')
+SELECT * FROM dmlcampusx.smartphones WHERE processor_brand NOT IN ('snapdragon', 'exynos', 'bionic')
+
+
+~ ~ ~ ---------- UPDATE Query ---------- ~ ~ ~
+
+UPDATE dmlcampusx.smartphones
+SET processor_brand = 'dimensity', ...............
+WHERE processor_brand = 'mediatek'
+
+
+~ ~ ~ ---------- DELETE Query ---------- ~ ~ ~
+
+    - Delete all phones price > 200000
+DELETE FROM dmlcampusx.smartphones
+WHERE price > 200000
+
+    - Delete with multiple condition
+DELETE FROM dmlcampusx.smartphones
+WHERE battery_capacity > 7000 AND brand_name = 'doogee'
+
+
+~ ~ ~ ---------- Types of function in SQL ---------- ~ ~ ~
+
+    - Built-in function
+        - scalar -> give one output (round / sqrt / lower / upper / abs)
+        - aggregate -> give summary (avg / sum / min / max / std / var)
+
+    - User defined
+
+    - find the minimum and maximum price 
+SELECT MAX(price) FROM dmlcampusx.smartphones
+SELECT MIN(price) FROM dmlcampusx.smartphones
+
+    - find the price of the costly samsung phone 
+SELECT MAX(price) FROM dmlcampusx.smartphones WHERE brand_name = 'samsung'
+
+    - find avg rating of apple phone 
+SELECT AVG(rating) FROM dmlcampusx.smartphones WHERE brand_name = 'apple'
+
+    - price of all phone
+SELECT SUM(price) FROM dmlcampusx.smartphones
+
+    - find the number of oneplus phones
+SELECT COUNT(*) FROM dmlcampusx.smartphones WHERE brand_name = 'oneplus'
+
+    - find the number of brands available -> COUNT (DISTINCT)
+SELECT COUNT(DISTINCT(brand_name)) FROM dmlcampusx.smartphones
+
+    - find std (standard deviation) of screen_size
+SELECT STD(screen_size) FROM dmlcampusx.smartphones
+
+    - find var (variance) of screen_size
+SELECT VARIANCE(screen_size) FROM dmlcampusx.smartphones
+
+    - find difference from avg rating of all samsung rating
+SELECT ABS(price - 100000) AS 'temp' FROM dmlcampusx.smartphones
+
+    - round the ppi to 2 decimal place
+SELECT model, ROUND((SQRT((resolution_width*resolution_width) + (resolution_height*resolution_height)) / screen_size), 2) AS 'ppi' FROM dmlcampusx.smartphones WHERE 1
+
+    - ceil / floor
+SELECT CEIL(screen_size) FROM dmlcampusx.smartphones
+SELECT FLOOR(screen_size) FROM dmlcampusx.smartphones

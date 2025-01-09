@@ -1,0 +1,186 @@
+~ RDBMS 
+    - Database server -> DBMS (phpMyAdmin) control -> Database -> Multiple table -> Store data in table 
+
+~ Types of SQL (Structured Query Language) command
+    - DDL -> Data Definition Language 
+        - CREATE (create new database objects)
+        - ALTER (modify existing database objects)
+        - DROP (delete existing database objects)
+        - TRUNCATE (remove all rows from table)
+    
+    - DML -> Data Manipulation Language
+        - INSERT (create new rows in tables)
+        - UPDATE (modify data in tables)
+        - DELETE (delete data from tables)
+        - SELECT (retrieve data from tables)
+     
+    - DCL -> Data Control Language
+        - GRANT (provides access rights on database)
+        - REVOKE (withdraw access rights on database)
+
+    - TCL -> Transaction Control Language
+        - COMMIT (save database change and end transaction)
+        - ROLLBACK (undo change that are not committed and end transaction)
+
+
+~ ~ ~ ---------- DDL Command ---------- ~ ~ ~
+    01. CREATE
+    CREATE DATABASE firstdemoddl
+    CREATE DATABASE IF NOT EXISTS firstdemoddl
+
+    02. DROP 
+    DROP DATABASE firstdemoddl
+    DROP DATABASE IF EXISTS firstdemoddl
+
+    03. DDL command for table 
+    
+    -- CREATE --
+    CREATE TABLE users (
+	    user_id INTEGER,
+        name VARCHAR(255),
+        email VARCHAR(255),
+        password VARCHAR(255)
+    )
+
+    -- TRUNCATE -- 
+    TRUNCATE users
+
+    -- DROP -- 
+    DROP TABLE IF EXISTS users 
+
+
+~ ~ ~ ---------- Data Integrity ---------- ~ ~ ~
+    - Constraints (set of rules, follow to add data, remove data, edit data)
+    - Transaction
+    - Normalization
+
+
+~ ~ ~ ---------- Constraints in MySQL ---------- ~ ~ ~
+    01. NOT NULL (column can not contain NULL value)
+    02. UNIQUE (value can not be repeated)
+    03. PRIMARY KEY (can not be null & be unique)
+    04. AUTO INCREMENT
+    05. CHECK (add condition)
+    06. DEFAULT (if value not added it will add some default value)
+    07. FOREIGN KEY 
+
+    -- NOT NULL -- 
+    CREATE TABLE users (
+        user_id INTEGER NOT NULL, 
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        password VARCHAR(255)
+    )
+
+    -- UNIQUE --
+    CREATE TABLE users (
+        user_id INTEGER NOT NULL, 
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL
+    )
+
+    - 2nd way
+    CREATE TABLE users (
+        user_id INTEGER NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        
+        CONSTRAINT user_email_unique UNIQUE (email),
+        CONSTRAINT user_pk PRIMARY KEY (user_id)
+    )
+
+    -- AUTO INCREMENT -- 
+    CREATE TABLE users (
+        user_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE, 
+        password VARCHAR(255) NOT NULL
+    )
+
+    -- CHECK -- 
+    CREATE TABLE students (
+        user_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        age INTEGER,
+        
+        CONSTRAINT students_age_check CHECK (age > 6 AND age < 25)
+    )
+
+    -- DEFAULT -- 
+    CREATE TABLE ticket (
+        ticket_id INTEGER PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        travel_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+
+    -- FOREIGN KEY -- 
+    CREATE TABLE customers (
+        cid INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE
+    )
+
+    CREATE TABLE orders (
+        order_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        cid INTEGER NOT NULL,
+        order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        
+        CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+    )
+
+    --> can not delete "customers" cause "orders" depend on "customers"
+
+
+    ---------- Referential Actions ----------
+    If two column are related via a FOREIGN key then what happen if i change / edit something on first column
+        - RESTRICT (stop being changing)
+        - CASCADE (change everything)
+        - SET NULL ()
+        - SET DEFAULT 
+
+    -- CASCADE --
+    CREATE TABLE orders (
+        order_id INTEGER PRIMARY KEY,
+        cid INTEGER NOT NULL,
+        order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        
+        CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+    )
+
+
+---------- ALTER Table Command ----------
+    -- Add columns -- 
+    ALTER TABLE customers ADD COLUMN PASSWORD VARCHAR(255) NOT NULL
+    ALTER TABLE customers ADD COLUMN surname VARCHAR(255) NOT NULL AFTER name
+
+    ~ Add multiple column
+    ALTER TABLE customers
+    ADD COLUMN pan_number VARCHAR(255) AFTER surname,
+    ADD COLUMN joining_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+    -- Delete columns --
+    ALTER TABLE customers DROP COLUMN pan_number
+
+    ~ Delete multiple column
+    ALTER TABLE customers
+    DROP COLUMN PASSWORD,
+    DROP COLUMN joining_date
+
+    -- Modify columns --
+    ALTER TABLE customers MODIFY COLUMN surname INTEGER AUTO_INCREMENT
+
+
+---------- Edit & Delete Constraint ----------
+    -- ADD -- 
+    ALTER TABLE customers ADD COLUMN age INTEGER NOT NULL 
+    ALTER TABLE customers ADD CONSTRAINT customer_age_check CHECK (age > 13)
+
+    - DELETE
+    ALTER TABLE customers DROP CONSTRAINT customer_age_check 
+
+    - EDIT (can not modify delete first then add new)
+    
