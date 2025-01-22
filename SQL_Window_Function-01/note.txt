@@ -1,0 +1,223 @@
+~ ~ ~ ---------- Window Function ---------- ~ ~ ~
+
+    - type of analytical function that perform calculation across a set of rows that are related to the current row called a window 
+    - OVER() like group by function but it give full table
+    - ans became sorted but if i don't the sort value use ORDER BY 
+
+
+CREATE TABLE marks (
+ student_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255),
+    branch VARCHAR(255),
+    marks INTEGER
+);
+
+INSERT INTO marks (name,branch,marks)VALUES 
+('Nitish','EEE',82),
+('Rishabh','EEE',91),
+('Anukant','EEE',69),
+('Rupesh','EEE',55),
+('Shubham','CSE',78),
+('Ved','CSE',43),
+('Deepak','CSE',98),
+('Arpan','CSE',95),
+('Vinay','ECE',95),
+('Ankit','ECE',88),
+('Anand','ECE',81),
+('Rohit','ECE',95),
+('Prashant','MECH',75),
+('Amit','MECH',69),
+('Sunny','MECH',39),
+('Gautam','MECH',51)
+
+SELECT *, AVG(marks) OVER (PARTITION BY branch) FROM marks
+
+    - find the MIN & MAX value
+SELECT *,
+MIN(marks) OVER(),
+MAX(marks) OVER()
+FROM marks
+
+    - if i don't want sorted value 
+SELECT *,
+MIN(marks) OVER(),
+MAX(marks) OVER()
+FROM marks
+ORDER BY student_id
+
+    - PARTITION BY branch
+SELECT *,
+AVG(marks) OVER(),
+MIN(marks) OVER(),
+MAX(marks) OVER(),
+MIN(marks) OVER(PARTITION BY branch),
+MAX(marks) OVER(PARTITION BY branch)
+FROM marks
+ORDER BY student_id
+
+    - find all the students who have marks higher than the avg marks of their respective branch
+SELECT * FROM (
+SELECT *, AVG(marks) OVER(PARTITION BY branch) AS 'avg_marks'
+FROM marks
+) t1
+WHERE t1.marks > t1.avg_marks
+
+
+~ ~ ~ ---------- RANK / DENSE_RANK / ROW_NUMBER ---------- ~ ~ ~
+
+    - give me RANK from all branch
+SELECT *, 
+RANK() OVER(ORDER BY marks DESC)
+FROM marks 
+
+    - give RANK from individual branch 
+SELECT *, 
+RANK() OVER(PARTITION BY branch ORDER BY marks DESC)
+FROM marks 
+
+    - in RANK          - in DENSE_RANK
+        1                   1
+        1                   1
+        3                   2
+
+SELECT *, 
+RANK() OVER(PARTITION BY branch ORDER BY marks DESC),
+DENSE_RANK() OVER(PARTITION BY branch ORDER BY marks DESC)
+FROM marks
+
+    - ROW_NUMBER for all branch
+SELECT *, 
+ROW_NUMBER() OVER()
+FROM marks 
+
+    - ROW_NUMBER for individual branch
+SELECT *, 
+ROW_NUMBER() OVER(PARTITION BY branch)
+FROM marks 
+
+    - make unique id using branch & ROW_NUMBER
+SELECT *, 
+ROW_NUMBER() OVER(PARTITION BY branch),
+CONCAT(branch, '-', ROW_NUMBER() OVER(PARTITION BY branch))
+FROM marks 
+
+    - find top 2 most paying customers of each month 
+SELECT * FROM (
+SELECT date, MONTH(date) AS 'month', MONTHNAME(date), user_id, SUM(amount) AS 'total',
+RANK() OVER(PARTITION BY MONTHNAME(date) ORDER BY SUM(amount) DESC) AS 'month_rank'
+FROM orders
+GROUP BY MONTHNAME(date), user_id
+ORDER BY MONTH(date)
+) t
+
+WHERE t.month_rank < 3
+ORDER BY month DESC, month_rank ASC
+
+    - create roll no from branch and marks
+SELECT *, 
+CONCAT(branch, '-', marks) AS 'roll_no'
+FROM marks
+
+
+~ ~ ~ ---------- FIRST_VALUE / LAST_VALUE / NTH_VALUE ---------- ~ ~ ~
+
+    - highest marks from all branch 
+SELECT *, FIRST_VALUE(marks) OVER(ORDER BY marks DESC)
+FROM marks
+
+    - here LAST_VALUE not work properly hence we use FRAMES
+SELECT *, LAST_VALUE(marks) OVER(ORDER BY marks DESC)
+FROM marks
+
+    - this work properly for LAST_VALUE
+SELECT *, LAST_VALUE(marks) OVER(
+ORDER BY marks DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+) AS 'min_marks'
+FROM marks
+
+    - LAST_VALUE according to branch 
+SELECT *, LAST_VALUE(marks) OVER(
+PARTITION BY branch
+ORDER BY marks DESC 
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+) AS 'min_marks'
+
+
+~ ~ ~ ---------- FRAMES ---------- ~ ~ ~
+
+    - frames in a window function is subset of rows within the PARTITION
+    - FRAMES == subgroup after PARTITION
+    -- ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW -- ⬇️ not work properly 
+SELECT *, LAST_VALUE(marks) OVER(ORDER BY marks DESC)
+FROM marks
+
+        91 -> first row 
+        82 -> current value (last value)
+        64 -> current value (last value)
+        55 -> current value (last value)
+
+    -- ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING --
+    -- ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING --
+    -- ROWS BETWEEN 3 PRECEDING AND 2 FOLLOWING --  
+    --> UNBOUNDED PRECEDING -> first row 
+    --> UNBOUNDED FOLLOWING -> last row
+
+    - find second topper 
+SELECT *, NTH_VALUE(name, 2) OVER(
+PARTITION BY branch
+ORDER BY marks DESC 
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+) AS 'min_marks'
+FROM marks
+
+    - find topper from each branch
+SELECT * FROM (
+SELECT *,
+FIRST_VALUE(name) OVER(PARTITION BY branch ORDER BY marks DESC) AS 'topper_name',
+FIRST_VALUE(marks) OVER(PARTITION BY branch ORDER BY marks DESC) AS 'topper_marks'
+FROM marks
+) t
+WHERE t.name = t.topper_name AND t.marks = t.topper_marks
+
+    - find last guy from each branch
+
+# R - 01 
+SELECT * FROM (
+SELECT *,
+LAST_VALUE(name) OVER(PARTITION BY branch ORDER BY marks DESC
+	 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS 'topper_name',
+LAST_VALUE(marks) OVER(PARTITION BY branch ORDER BY marks DESC
+	 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS 'topper_marks'
+FROM marks
+) t
+WHERE t.name = t.topper_name AND t.marks = t.topper_marks
+
+# R - 02
+SELECT * FROM (
+SELECT *,
+LAST_VALUE(name) OVER w AS 'topper_name',
+LAST_VALUE(marks) OVER w AS 'topper_marks'
+FROM marks
+WINDOW w AS (PARTITION BY branch ORDER BY marks DESC 
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+) t
+WHERE t.name = t.topper_name AND t.marks = t.topper_marks
+
+
+~ ~ ~ ---------- LEAD / LAG ---------- ~ ~ ~
+
+    - Lead -> One step backward compare to original column 
+    - LAG -> One step forward compare to original column 
+ 
+SELECT *,
+LEAD(marks) OVER (PARTITION BY branch ORDER BY student_id),
+LAG(marks) OVER (PARTITION BY branch ORDER BY student_id)
+FROM marks 
+
+    - find the month on month revenue growth of Zomato
+SELECT MONTHNAME(date), SUM(amount), 
+((SUM(amount) - LAG(SUM(amount)) OVER (ORDER BY MONTH(date))) / 
+(LAG(SUM(amount)) OVER (ORDER BY MONTH(date)))) * 100
+FROM orders
+GROUP BY MONTHNAME(date)
+ORDER BY MONTH(date) ASC

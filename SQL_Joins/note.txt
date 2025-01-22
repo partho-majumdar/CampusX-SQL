@@ -1,0 +1,163 @@
+~ ~ ~ ---------- Joins (combined data based on common column) ---------- ~ ~ ~
+
+    - INNER JOIN
+    - LEFT JOIN
+    - RIGHT JOIN 
+    - FULL JOIN
+    - CROSS JOIN (Cartesian Product)
+    - SELF JOIN  
+
+    -- CROSS JOIN -- 
+- All possible combination 
+SELECT * FROM sql_cx_live.users1 t1
+CROSS JOIN sql_cx_live.groups t2
+
+    -- INNER JOIN -- 
+- combined data based on a specific condition 
+SELECT * FROM sql_cx_live.membership t1
+INNER JOIN sql_cx_live.users1 t2
+ON t1.user_id = t2.user_id
+
+    -- LEFT JOIN -- 
+- common column added also all value from left side will join
+- table come first = left 
+- table come second = right
+SELECT * FROM sql_cx_live.membership t1
+LEFT JOIN sql_cx_live.users1 t2
+ON t1.user_id = t2.user_id
+
+    -- RIGHT JOIN -- 
+- common column added also all value from right side will join
+SELECT * FROM sql_cx_live.membership t1
+RIGHT JOIN sql_cx_live.users1 t2
+ON t1.user_id = t2.user_id
+
+    -- FULL OUTER JOIN -- 
+    - all matching rows from both table and non-matching rows from both table
+    - can not perform using join (hence we need set)
+    - left join UNION right join
+SELECT * FROM sql_cx_live.membership t1
+LEFT JOIN sql_cx_live.users1 t2
+ON t1.user_id = t2.user_id
+UNION
+SELECT * FROM sql_cx_live.membership t1
+RIGHT JOIN sql_cx_live.users1 t2
+ON t1.user_id = t2.user_id
+
+
+~ ~ ~ ---------- SQL Set Operations ---------- ~ ~ ~
+
+    - Union (common + uncommon) & remove duplicate
+    - Union all (common + uncommon) & not remove duplicate
+    - Intersect (only common)
+    - Except / Minus (all unique value from first set)
+
+    -- UNION --
+SELECT * FROM sql_cx_live.person1
+UNION
+SELECT * FROM sql_cx_live.person2
+
+    -- UNION ALL --
+SELECT * FROM sql_cx_live.person1
+UNION ALL
+SELECT * FROM sql_cx_live.person2
+
+    -- INTERSECT --
+SELECT * FROM sql_cx_live.person1
+INTERSECT
+SELECT * FROM sql_cx_live.person2
+
+    -- EXCEPT --
+SELECT * FROM sql_cx_live.person1
+EXCEPT
+SELECT * FROM sql_cx_live.person2
+
+
+~ ~ ~ ---------- SELF JOIN ---------- ~ ~ ~
+
+- one table treated as two separated table 
+SELECT * FROM sql_cx_live.users1 t1
+JOIN sql_cx_live.users1 t2
+ON t1.emergency_contact = t2.user_id
+
+
+~ ~ ~ ---------- JOIN one / more column ---------- ~ ~ ~
+
+SELECT * FROM sql_cx_live.students t1
+JOIN sql_cx_live.class t2
+ON t1.class_id = t2.class_id 
+AND t1.enrollment_year = t2.class_year
+
+
+~ ~ ~ ---------- JOIN more than 2 table ---------- ~ ~ ~
+
+SELECT * FROM flipkart.order_details t1
+JOIN flipkart.orders t2
+ON t1.order_id = t2.order_id
+JOIN flipkart.users t3
+ON t2.user_id = t3.user_id
+
+    - chose specific column
+SELECT t1.order_id, t1.amount, t1.profit, t3.name 
+FROM flipkart.order_details t1
+JOIN flipkart.orders t2
+ON t1.order_id = t2.order_id
+JOIN flipkart.users t3
+ON t2.user_id = t3.user_id
+
+    - find order_id, name and city by joining users and orders 
+SELECT t1.order_id, t2.name, t2.city
+FROM flipkart.orders t1
+JOIN flipkart.users t2
+ON t1.user_id = t2.user_id
+
+    - find order_id, category by joining order_details and category 
+SELECT t1.order_id, t2.category
+FROM flipkart.order_details t1
+JOIN flipkart.category t2
+ON t1.category_id = t2.category_id
+
+    - find all the orders placed in pune and name = 'Pearl'
+SELECT * FROM flipkart.orders t1
+JOIN flipkart.users t2
+ON t1.user_id = t2.user_id
+WHERE t2.city = 'Pune' AND t2.name = 'Pearl'
+
+    - find all profitable orders 
+SELECT t1.order_id, SUM(t2.profit) AS 'profit'
+FROM flipkart.orders t1
+JOIN flipkart.order_details t2
+ON t1.order_id = t2.order_id
+GROUP BY t1.order_id
+HAVING profit > 0
+
+    - find the customer who has placed max number of orders
+SELECT t2.name, COUNT(*) AS 'no_of_orders' FROM flipkart.orders t1
+JOIN flipkart.users t2
+ON t1.user_id = t2.user_id
+GROUP BY t2.name
+ORDER BY no_of_orders DESC LIMIT 1
+
+    - which is the most profitable category 
+SELECT t2.category, SUM(profit) AS 'profit' FROM flipkart.order_details t1
+JOIN flipkart.category t2
+ON t1.category_id = t2.category_id
+GROUP BY t2.category
+ORDER BY profit DESC LIMIT 1
+
+    - which is the most profitable state
+SELECT state, SUM(profit) AS 'profit' FROM flipkart.orders t1
+JOIN flipkart.order_details t2
+ON t1.order_id = t2.order_id
+JOIN flipkart.users t3
+ON t1.user_id = t3.user_id
+GROUP BY state
+ORDER BY profit DESC LIMIT 1 
+
+    - find all categories with profit higher than 3000
+SELECT t2.category, SUM(profit) AS 'profit' FROM flipkart.order_details t1
+JOIN flipkart.category t2
+ON t1.category_id = t2.category_id
+GROUP BY t2.category
+HAVING profit > 3000
+ORDER BY profit 

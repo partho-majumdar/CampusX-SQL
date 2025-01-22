@@ -1,0 +1,264 @@
+~ ~ ~ ---------- Data Cleaning ---------- ~ ~ ~
+
+SELECT ScreenResolution, SUBSTRING_INDEX(ScreenResolution, ' ', -1),
+SUBSTRING_INDEX(SUBSTRING_INDEX(ScreenResolution, ' ', -1), 'x', 1),
+SUBSTRING_INDEX(SUBSTRING_INDEX(ScreenResolution, ' ', -1), 'x', -1) 
+FROM laptop;
+
+ALTER TABLE laptop 
+ADD COLUMN resolution_width INTEGER AFTER ScreenResolution,
+ADD COLUMN resolution_height INTEGER AFTER resolution_width;
+
+UPDATE laptop
+SET resolution_width = SUBSTRING_INDEX(SUBSTRING_INDEX(ScreenResolution, ' ', -1), 'x', 1),
+resolution_height = SUBSTRING_INDEX(SUBSTRING_INDEX(ScreenResolution, ' ', -1), 'x', -1);
+
+ALTER TABLE laptop
+ADD COLUMN touchscreen INTEGER AFTER resolution_height;
+
+SELECT ScreenResolution LIKE '%touch%' FROM laptop;
+
+UPDATE laptop
+SET touchscreen = ScreenResolution LIKE '%Touch%';
+
+ALTER TABLE laptop 
+DROP COLUMN ScreenResolution;
+
+SELECT cpu_name, SUBSTRING_INDEX(TRIM(cpu_name), ' ', 2) 
+FROM laptop;
+
+UPDATE laptop
+SET cpu_name = SUBSTRING_INDEX(TRIM(cpu_name), ' ', 2);
+
+SELECT SUBSTRING_INDEX(Memory, '+', -1) FROM laptop;
+
+ALTER TABLE laptop
+ADD COLUMN memory_type VARCHAR(255) AFTER Memory,
+ADD COLUMN primary_storage INTEGER AFTER memory_type,
+ADD COLUMN secondary_storage INTEGER AFTER primary_storage;
+
+SELECT Memory,
+    CASE
+        WHEN Memory LIKE '%SSD%' AND Memory LIKE '%HDD%' THEN 'Hybrid'
+        WHEN Memory LIKE '%SSD%' THEN 'SSD'
+        WHEN Memory LIKE '%HDD%' THEN 'HDD'
+        WHEN Memory LIKE '%Flash Storage%' THEN 'Flash Storage'
+        WHEN Memory LIKE '%Hybrid%' THEN 'Hybrid'
+        WHEN Memory LIKE '%Flash Storage%' AND Memory LIKE '%HDD%' THEN 'Hybrid'
+        ELSE NULL
+    END AS memory_type
+FROM laptop;
+
+UPDATE laptop
+SET memory_type = CASE
+        WHEN Memory LIKE '%SSD%' AND Memory LIKE '%HDD%' THEN 'Hybrid'
+        WHEN Memory LIKE '%SSD%' THEN 'SSD'
+        WHEN Memory LIKE '%HDD%' THEN 'HDD'
+        WHEN Memory LIKE '%Flash Storage%' THEN 'Flash Storage'
+        WHEN Memory LIKE '%Hybrid%' THEN 'Hybrid'
+        WHEN Memory LIKE '%Flash Storage%' AND Memory LIKE '%HDD%' THEN 'Hybrid'
+        ELSE NULL
+    END;
+    
+SELECT Memory,
+SUBSTRING_INDEX(Memory, '+', 1),
+CASE WHEN Memory LIKE '%+%' THEN SUBSTRING_INDEX(Memory, '+', -1) ELSE 0 END
+FROM laptop;
+
+    
+SELECT Memory,
+REGEXP_SUBSTR(SUBSTRING_INDEX(Memory, '+', 1), '[0-9]+'),
+CASE WHEN Memory LIKE '%+%' THEN REGEXP_SUBSTR(SUBSTRING_INDEX(Memory, '+', -1), '[0-9]+') ELSE 0 END
+FROM laptop;
+
+UPDATE laptop
+SET primary_storage = REGEXP_SUBSTR(SUBSTRING_INDEX(Memory, '+', 1), '[0-9]+'),
+secondary_storage = CASE WHEN Memory LIKE '%+%' THEN REGEXP_SUBSTR(SUBSTRING_INDEX(Memory, '+', -1), '[0-9]+') ELSE 0 END;
+
+SELECT primary_storage, secondary_storage,
+CASE WHEN primary_storage <= 2 THEN primary_storage * 1024 ELSE primary_storage END,
+CASE WHEN secondary_storage <= 2 THEN secondary_storage * 1024 ELSE secondary_storage END
+FROM laptop;
+
+UPDATE laptop
+SET primary_storage = CASE WHEN primary_storage <= 2 THEN primary_storage * 1024 ELSE primary_storage END,
+secondary_storage = CASE WHEN secondary_storage <= 2 THEN secondary_storage * 1024 ELSE secondary_storage END;
+
+ALTER TABLE laptop DROP COLUMN Memory;
+
+ALTER TABLE laptop DROP COLUMN gpu_name;
+
+SELECT * FROM laptop;
+
+
+~ ~ ~ ---------- EDA ---------- ~ ~ ~
+
+    01. Head ->  Tail -> Sample
+    02. For numerical column 
+        - 8 number summary [count, min, max, mean, std, q1, q2, q3]
+        - mussing value
+        - outlier
+        - horizontal / vertical histogram
+
+    03. For categorical column 
+        - value counts [pie chart]
+        - missing value 
+
+    04. Numerical - Numerical column
+        - side by side 8 number analysis
+        - scatter-plot
+        - correlation
+
+    05. Categorical - Categorical column 
+        - contingency table [stacked bar chart]
+
+    06. Numerical - Categorical column 
+        - compare distribution across categories
+
+    07. Missing value treatments
+    08. Feature engineering 
+        - ppi
+        - price_bracket
+
+    09. One hot encoding (categorical to numerical)
+
+
+
+    01. Head, tail, sample 
+
+SELECT * FROM laptop ORDER BY `index` LIMIT 5;
+SELECT * FROM laptop ORDER BY `index` DESC LIMIT 5;                     
+SELECT * FROM laptop ORDER BY RAND() LIMIT 5;
+
+    02. For numerical column 
+SELECT 
+    COUNT(Price) OVER(),
+    MIN(Price) OVER(),
+    MAX(Price) OVER(),
+    AVG(Price) OVER(),
+    STDDEV(Price) OVER(),
+    PERCENTILE_CONT(0.25) WITHIN GROUP(ORDER BY Price) OVER() AS 'Q1',
+    PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY Price) OVER() AS 'Median',
+    PERCENTILE_CONT(0.75) WITHIN GROUP(ORDER BY Price) OVER() AS 'Q3'
+FROM laptop
+ORDER BY `index` LIMIT 1
+
+    03. Find missing value 
+SELECT COUNT(Price) FROM laptop WHERE Price IS NULL
+
+    04. Find outlier
+SELECT * FROM (
+SELECT *,
+PERCENTILE_CONT(0.25) WITHIN GROUP(ORDER BY Price) OVER() AS 'Q1',
+PERCENTILE_CONT(0.75) WITHIN GROUP(ORDER BY Price) OVER() AS 'Q3'
+FROM laptop
+) t
+WHERE t.Price < t.Q1 - (1.5 * (t.Q3 - t.Q1)) OR 
+t.Price > t.Q3 + (1.5 * (t.Q3 - t.Q1))
+
+    05. Create horizontal histogram 
+SELECT 
+    CASE 
+        WHEN Price BETWEEN 0 AND 25000 THEN '0-25k'
+        WHEN Price BETWEEN 25001 AND 50000 THEN '25k-50k'
+        WHEN Price BETWEEN 50001 AND 75000 THEN '50k-75k'
+        WHEN Price BETWEEN 75001 AND 100000 THEN '75k-100k'
+        ELSE '>100k'
+    END AS Price_Range,
+    COUNT(*) AS Count,
+    REPEAT('*', COUNT(*) / 5)
+FROM laptop
+GROUP BY Price_Range
+
+    06. Create vertical histogram
+    07. Categorical column value counts 
+SELECT Company, COUNT(Company) 
+FROM laptop
+GROUP BY Company
+
+    08. Scatter plot 
+SELECT cpu_speed, Price FROM laptop;
+
+    09. Contingency table 
+SELECT Company,
+SUM(CASE WHEN touchscreen = 1 THEN 1 ELSE 0 END) AS 'Touchscreen_Yes',
+SUM(CASE WHEN touchscreen = 0 THEN 1 ELSE 0 END) AS 'Touchscreen_No' 
+FROM laptop
+GROUP BY Company
+
+    10. Categorical numerical bivariate analysis 
+SELECT Company, MIN(Price), MAX(Price), 
+AVG(Price), STD(Price)
+FROM laptop
+GROUP BY Company
+
+    11. Missing value treatment
+UPDATE laptop
+SET price = NULL
+WHERE `index` IN (7,869,1148,827,865,821,1056,1043,692,1114)
+
+    - Replace missing value with mean of price 
+SELECT AVG(Price) FROM laptop;
+
+UPDATE laptop
+SET Price = (SELECT AVG(Price) FROM laptop)
+WHERE Price IS NULL
+
+    - Replace missing value with mean price of corresponding Company
+UPDATE laptop l1
+SET Price = (SELECT AVG(Price) FROM laptop l2 WHERE l1.Company = l2.Company)
+WHERE Price IS NULL
+
+    - Corresponding company and processor
+UPDATE laptop l1
+SET Price = (
+SELECT AVG(Price) FROM laptop l2 WHERE 
+l1.Company = l2.Company AND l1.cpu_name = l2.cpu_name
+)
+WHERE Price IS NULL
+
+    11. Feature engineering
+    - ppi column 
+ALTER TABLE laptop 
+ADD COLUMN ppi INTEGER AFTER resolution_height;
+
+SELECT ROUND(SQRT((resolution_width * resolution_width) + (resolution_height * resolution_height)) / Inches)
+FROM laptop;
+
+UPDATE laptop
+SET ppi = ROUND(SQRT((resolution_width * resolution_width) + (resolution_height * resolution_height)) / Inches)
+
+    - screen_size column 
+SELECT *,
+CASE 
+	WHEN NTILE(3) OVER (ORDER BY Inches) = 1 THEN 'small'
+	WHEN NTILE(3) OVER (ORDER BY Inches) = 2 THEN 'medium'
+	WHEN NTILE(3) OVER (ORDER BY Inches) = 1 THEN 'large' 
+END AS 'type'
+FROM laptop
+
+UPDATE laptop
+SET screen_size = (
+CASE 
+	WHEN Inches < 14.0 THEN 'small'
+    WHEN Inches <= 15.6 THEN 'medium'
+    ELSE 'large'
+END
+)
+
+    12. One hot encoding (like a matrix)
+
+        Intel          AMD          Nvidia
+
+Intel     1             0             0 
+
+AMD       0             1             0
+
+Nvidia    0             0             1
+
+SELECT gpu_brand,
+CASE WHEN gpu_brand = 'Intel' THEN 1 ELSE 0 END AS 'intel',
+CASE WHEN gpu_brand = 'AMD' THEN 1 ELSE 0 END AS 'amd',
+CASE WHEN gpu_brand = 'Nvidia' THEN 1 ELSE 0 END AS 'nvidia',
+CASE WHEN gpu_brand = 'ARM' THEN 1 ELSE 0 END AS 'arm'	 
+FROM laptop

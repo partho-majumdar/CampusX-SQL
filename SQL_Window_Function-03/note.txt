@@ -1,0 +1,98 @@
+~ ~ ~ ---------- PERCENT CHANGE ---------- ~ ~ ~
+
+    - Percent Change = ((new value - old value) / old value) * 100
+
+    - Month by month view
+SELECT YEAR(Date), MONTHNAME(Date), SUM(Views) AS 'views', 
+((SUM(Views) - LAG(SUM(Views)) OVER(ORDER BY YEAR(DATE), MONTH(DATE))) / (LAG(SUM(Views)) OVER(ORDER BY YEAR(DATE), MONTH(DATE)))) * 100 AS 'percent_change'
+FROM yt_views
+GROUP BY YEAR(Date), MONTHNAME(Date)
+ORDER BY YEAR(DATE), MONTH(DATE)
+
+    - Quarter by Quarter view
+SELECT YEAR(Date), QUARTER(Date), SUM(Views) AS 'views', 
+((SUM(Views) - LAG(SUM(Views)) OVER(ORDER BY YEAR(DATE), QUARTER(DATE))) / (LAG(SUM(Views)) OVER(ORDER BY YEAR(DATE), QUARTER(DATE)))) * 100 AS 'percent_change'
+FROM yt_views
+GROUP BY YEAR(Date), QUARTER(Date)
+ORDER BY YEAR(DATE), QUARTER(DATE)
+
+    - Percent change for a specific window
+SELECT *, 
+((Views - (LAG(Views, 7) OVER(ORDER BY Date))) / (LAG(Views, 7) OVER(ORDER BY Date))) * 100 AS 'weekly_percent_change'
+FROM yt_views
+
+
+~ ~ ~ ---------- PERCENTILES & QUANTILES ---------- ~ ~ ~
+
+    - PERCENTILE_CONT -> calculate continuous percentile value (not necessary value lie inside data)
+    - PERCENTILE_DISC -> calculate discrete value (value lie inside data) 
+
+    - find the median marks of all students 
+SELECT *, 
+PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY marks) OVER() AS 'median_marks'
+FROM marks;
+
+    - find branch wise median of student marks 
+SELECT *, 
+PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY marks) OVER(PARTITION BY branch) AS 'median_marks',
+PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY marks) OVER(PARTITION BY branch) AS 'median_marks'
+FROM marks;
+
+    - remove outlier from data (using interquartile range)
+    Q1 - 1.5IQR --------------------- Q3 + 1.5IQR
+
+SELECT * FROM (
+    SELECT *,
+    PERCENTILE_CONT(0.25) WITHIN GROUP(ORDER BY marks) OVER() AS 'Q1',
+    PERCENTILE_CONT(0.75) WITHIN GROUP(ORDER BY marks) OVER() AS 'Q3'
+    FROM marks
+) t
+WHERE t.marks > t.Q1 - (1.5 * (t.Q3 - t.Q1)) AND t.marks < t.Q3 + (1.5 * (t.Q3 - t.Q1));
+
+
+~ ~ ~ ---------- SEGMENTATION ---------- ~ ~ ~
+
+    - NTILE -> divide data in a bucket on the basis of some column 
+
+SELECT *,
+NTILE(3) OVER(ORDER BY marks) AS 'buckets'
+FROM marks
+
+    - CASE in SQL
+SELECT brand_name, model, price,
+CASE
+	WHEN bucket = 1 THEN 'budget'
+    WHEN bucket = 2 THEN 'mid-range'
+    WHEN bucket = 3 THEN 'premium'
+END AS 'phone_type'
+FROM (
+	SELECT brand_name, model, price,
+	NTILE(3) OVER(PARTITION BY brand_name ORDER BY price) AS 'bucket'
+	FROM smartphones
+) t
+
+
+~ ~ ~ ---------- CUMULATIVE DISTRIBUTION ---------- ~ ~ ~
+
+    - What percentage of the rows in the data set have a value less than or equal to the current row
+    - CUME_DIST
+
+    - how many student are more than 99 percentile
+SELECT * FROM (
+SELECT *,
+CUME_DIST() OVER(ORDER BY marks) AS 'percentile_score'
+FROM marks
+) t
+WHERE t.percentile_score > 0.99
+
+
+~ ~ ~ ---------- Partition By Multiple Columns ---------- ~ ~ ~
+
+    - source to destination what is the cheapest flight
+SELECT * FROM (
+SELECT Source, Destination, Airline, AVG(Price) AS 'avg_fare', 
+DENSE_RANK() OVER(PARTITION BY Source, Destination ORDER BY AVG(Price)) AS 'rank'
+FROM flights_cleaned 
+GROUP BY Source, Destination, Airline
+) t
+WHERE t.rank < 2 

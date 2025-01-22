@@ -1,0 +1,197 @@
+~ ~ ~ ---------- Subquery ---------- ~ ~ ~
+    -- Subquery is a query in another query --
+    -- Subquery executed first and then use condition for outer query --
+
+    - find the movie with highest rating
+SELECT * FROM movies
+WHERE score = (SELECT MAX(score) FROM movies)
+            - this is inner query
+
+
+~ ~ ~ ---------- Types of Subquery ---------- ~ ~ ~
+    - Based on return data
+        - Scalar Subquery (when inner query return a scalar/single value)
+        - Row Subquery (when inner query return multiple rows and one column)
+        - Table Subquery (when inner query return multiple rows and multiple columns)
+
+    - Based on working (how query execute)
+        - Independent Subquery (inner query not depend on outer query)
+        - Co-related Subquery (inner query depend on outer query)
+
+
+~ ~ ~ ---------- Where can Subquery be used ---------- ~ ~ ~
+
+    - INSERT
+    - SELECT
+        - WHERE
+        - SELECT
+        - FROM 
+        - HAVING
+    - UPDATE
+    - DELETE
+
+
+~ ~ ~ ---------- Independent Subquery -> Scalar Subquery ---------- ~ ~ ~
+
+    - find the movie with highest rating (vs order by)
+# R - 01
+SELECT * FROM movies
+WHERE (gross - budget) = (SELECT MAX(gross - budget) FROM movies)
+
+# R - 02
+SELECT * FROM movies
+ORDER BY (gross - budget) DESC LIMIT 1
+
+    - find how many movies have rating > the avg of all the movies rating (Find the count of above avg movies)
+SELECT COUNT(*) FROM movies 
+WHERE score > (SELECT AVG(score) FROM movies)
+
+    - find the highest rated movie of year 2000
+SELECT * FROM movies 
+WHERE year = 2000 AND score = (SELECT MAX(score) FROM movies WHERE year = 2000)
+
+    - find the highest rated movie among all movies whose number of votes are > the dataset avg votes
+SELECT * FROM movies 
+WHERE score = (SELECT MAX(score) FROM movies WHERE votes > (SELECT AVG(votes) FROM movies))
+
+
+~ ~ ~ ---------- Independent Subquery -> Row Subquery ---------- ~ ~ ~
+
+    - find all users who never ordered
+SELECT * FROM users 
+WHERE user_id NOT IN (SELECT DISTINCT(user_id) FROM orders)
+
+    - find all the movies made by top 3 director (in terms of total gross income)
+WITH top_directors AS (
+	SELECT director 
+	FROM movies 
+	GROUP BY director
+	ORDER BY SUM(gross) DESC LIMIT 3
+)
+SELECT * FROM movies WHERE director IN (SELECT * FROM top_directors)
+
+    - find all movies of all those actors whose filmography's avg rating > 8.5
+SELECT * FROM movies 
+WHERE star IN (
+	SELECT star FROM movies
+	WHERE votes > 25000
+	GROUP BY star
+	HAVING AVG(score) > 8.5
+)
+
+
+~ ~ ~ ---------- Independent Subquery -> Table Subquery ---------- ~ ~ ~
+
+    - find the most profitable movies of each year
+SELECT * FROM movies 
+WHERE (year, gross - budget) IN (
+	SELECT year, MAX(gross - budget) FROM movies GROUP BY year
+)
+
+    - find the highest rated movie of each genre votes cutoff of 25000
+SELECT * FROM movies
+WHERE (genre, score) IN (
+	SELECT genre, MAX(score)
+	FROM movies 
+	WHERE votes > 25000 
+	GROUP BY genre
+) AND votes > 25000
+
+    - find the highest grossing movies of top 5 actor/director combo in terms of total gross income
+WITH top_duos As (
+	SELECT star, director, MAX(gross)
+	FROM movies 
+	GROUP BY star, director
+	ORDER BY SUM(gross ) DESC LIMIT 5
+)
+
+SELECT * FROM movies    
+WHERE (star, director, gross) IN (SELECT * FROM top_duos)
+
+
+~ ~ ~ ---------- Co-related Subquery -> SELECT ---------- ~ ~ ~
+
+    - find all the movies that have a rating higher than the average rating of movies in the same genre 
+SELECT * FROM movies m1
+WHERE score > (
+	SELECT AVG(score) FROM movies m2 WHERE m2.genre = m1.genre
+)
+
+    - find the favorite food of each customers
+WITH fav_food AS (
+	SELECT name, f_name, COUNT(*) AS 'feq', t2.user_id FROM users t1
+	JOIN orders t2
+	ON t1.user_id = t2.user_id
+	JOIN order_details t3
+	ON t2.order_id = t3.order_id
+	JOIN food t4
+	ON t3.f_id = t4.f_id
+	GROUP BY t2.user_id, t3.f_id
+)
+
+SELECT * FROM fav_food f1
+WHERE feq = (SELECT MAX(feq) FROM fav_food f2 WHERE f2.user_id = f1.user_id)
+
+    - find the percentage of votes for each movie compared to the total number of votes
+SELECT name, (votes / (SELECT (SUM(votes)) FROM movies))*100 FROM movies
+
+    - display all the movie names, genre, score and avg score of genre
+SELECT name, genre, score, 
+(SELECT AVG(score) FROM movies m2 WHERE m2.genre = m1.genre) 
+FROM movies m1
+
+
+~ ~ ~ ---------- Co-related Subquery -> FROM ---------- ~ ~ ~
+
+    - display avg rating of all the restaurants
+SELECT r_name, avg_rating FROM(
+	SELECT r_id, AVG(restaurant_rating) AS 'avg_rating'
+	FROM orders
+	GROUP BY r_id
+) t1 JOIN restaurants t2
+ON t1.r_id = t2.r_id
+
+
+~ ~ ~ ---------- Co-related Subquery -> HAVING ---------- ~ ~ ~
+
+    - find genres having avg score > avg score of all movies 
+SELECT genre, AVG(score) FROM movies
+GROUP BY genre
+HAVING AVG(score) > (
+	SELECT AVG(score) FROM movies
+)
+
+
+~ ~ ~ ---------- Co-related Subquery -> INSERT ---------- ~ ~ ~
+
+    - create loyal_customer table with only those customer who have ordered more than 3 times
+INSERT INTO loyal_users
+(user_id, name)
+
+SELECT t1.user_id, name
+FROM orders t1
+JOIN users t2
+ON t1.user_id = t2.user_id
+GROUP BY user_id
+HAVING COUNT(*) > 3
+
+
+~ ~ ~ ---------- Co-related Subquery -> UPDATE ---------- ~ ~ ~
+
+    - update money column of loyal_users table using the orders table. Provide a 10% app money to all the customer based on their order value
+UPDATE loyal_users
+SET money = (
+	SELECT SUM(amount)
+    FROM orders
+    WHERE orders.user_id = loyal_users.user_id
+)
+
+
+~ ~ ~ ---------- Co-related Subquery -> DELETE ---------- ~ ~ ~
+
+    - delete all the customer record who have never ordered 
+DELETE FROM users 
+WHERE user_id IN (
+	SELECT user_id FROM users
+	WHERE user_id NOT IN (SELECT DISTINCT(user_id) FROM orders)
+)
