@@ -1,0 +1,157 @@
+~ ~ ~ ---------- SQL Data-types ---------- ~ ~ ~
+
+    - DataType
+        - Numeric (Integer / Decimal)
+        - Text (Varchar / Text / Enum / Blob)
+        - Datetime (Date / Time / Datetime / Year)
+        - Miscellaneous (Json / Spatial)
+
+    -- Numeric --
+
+    - Integer 
+        - Int
+        - TinyInt
+        - SmallInt
+        - MediumInt
+        - BigInt
+    - Decimal 
+        - Float
+        - Double
+
+
+    -- Signed vs Unsigned 
+
+CREATE TABLE dt_demo(
+	user_id TINYINT, -> as it is signed so it range -128 to 127 hence 200 not store
+    course_id TINYINT UNSIGNED
+);
+
+INSERT INTO dt_demo VALUES (200, 200);
+
+SELECT * FROM dt_demo;
+
+    -- DECIMAL (x, y)  -> (total number of digit, digit after .)
+
+ALTER TABLE dt_demo 
+ADD COLUMN Price Decimal(5, 2)
+
+UPDATE dt_demo
+SET Price = 4756.32; -> As it has total no of digit 5 so maximum 999.99 can store
+
+SELECT * FROM dt_demo;
+
+    -- Float(4 bytes) & Double(8 bytes) 
+        - 
+
+ALTER TABLE dt_demo 
+ADD COLUMN Height Float;
+
+ALTER TABLE dt_demo 
+ADD COLUMN Weight Double;
+
+UPDATE dt_demo
+SET Height = 172.34591;
+
+UPDATE dt_demo
+SET Weight = 60.45679;
+
+    -- Enum & Set 
+        - Enum -> dropdown (ex. gender)
+        - Set -> add multiple value
+
+# Example of ENUM
+ALTER TABLE dt_demo 
+ADD COLUMN Gender ENUM ('Male', 'Female');
+
+UPDATE dt_demo
+SET Gender = 'LGTV'; -> error cause gender except only male / female
+
+# Example of Set
+ALTER TABLE dt_demo 
+ADD COLUMN Hobby SET('sports', 'gaming', 'reading');
+
+INSERT INTO dt_demo (Hobby) VALUES 
+('sports'), 
+('gaming'), 
+('sports,gaming'), 
+('dancing');
+
+    -- BLOB (Binary Large Object)
+        - TINYBLOB -> store max 255 byte
+        - BLOB -> store 64kb 
+        - MEDIUMBLOB -> store 16mb
+        - LONGBLOB -> 4gb
+
+ALTER TABLE dt_demo
+ADD COLUMN DP  MEDIUMBLOB;
+
+INSERT INTO dt_demo (DP) VALUES(LOAD_FILE('D:/Partho Photo/download.png'));
+
+    -- Spatial DataType
+        - GEOMETRY (point / lines / polygons)
+
+ALTER TABLE dt_demo
+ADD COLUMN LatLong GEOMETRY;
+
+INSERT INTO dt_demo (LatLong) VALUES (POINT(67.4589, 97.4321));
+
+SELECT ST_ASTEXT(LatLong), ST_X(LatLong), ST_Y(LatLong) FROM dt_demo
+
+    -- JSON 
+        - Store data in Key-Value pair
+
+ALTER TABLE dt_demo
+ADD COLUMN Description JSON;
+
+INSERT INTO dt_demo (Description) VALUES (
+'
+	{
+	"os": "android", 
+	"type": "smartphones"
+	}
+'
+);
+
+SELECT Description, JSON_EXTRACT(Description, '$.os'), JSON_EXTRACT(Description, '$.type') FROM dt_demo;
+
+
+~ ~ ~ ---------- Normalization ---------- ~ ~ ~
+
+    - Why need multiple table?
+        - Data redundancy
+        - Anomaly
+            - Insertion Anomaly (during insert something wrong happen)
+            - Deletion Anomaly
+            - Update Anomaly
+
+        Solution --> Normalization (Logically divide data into different table)
+            - First Normal Form (1NF)
+            - Second Normal Form (1NF)
+            - Third Normal Form (1NF)
+
+A table is in 1 NF if:
+    - Each col should contain atomic values (single value not comma separated value).
+    - Attribute Domain does not change -> data type should not change.
+    - There is a unique name for every Attribute/Column.
+    - The order in which data is stored does not matter.
+
+A table is in 2NF if:
+    - It is already in 1NF1.
+    - It does not contain any partial dependency.
+        - Partial dependency occurs when a non-key attribute is dependent on only a part of the primary key instead of the entire key.    
+
+A table is in 3NF if:
+    - If it is already in 2NF
+    - There is no transitive dependency
+        - A transitive dependency exists when a non-key attribute depends on another non- key attribute, which is not a part of the primary key.
+
+
+~ ~ ~ ---------- ER Diagram ---------- ~ ~ ~
+
+    - 3 type of relation
+        - One to One
+        - One to Many
+        - Many to Many
+
+Identifying Relation: if in both table primary key same
+Non-Identifying Relation: if in both table primary key are different 

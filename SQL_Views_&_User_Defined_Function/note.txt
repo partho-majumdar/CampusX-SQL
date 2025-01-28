@@ -1,0 +1,121 @@
+~ ~ ~ ---------- Views ---------- ~ ~ ~
+
+    - View is a virtual table that does not store any data on its own but presents a customized view of one or more tables in a database
+    - Virtual table physically not exist in memory
+
+    - Simple Views - Created from 1 single table
+
+# Ex - 01
+
+SELECT * FROM flights;
+
+CREATE VIEW indigo AS 
+SELECT * FROM flights
+WHERE Airline = 'Indigo';
+
+SELECT * FROM indigo
+
+# Ex-02  
+
+CREATE VIEW join_order_data AS 
+SELECT order_id, amount, r_name, name, date, delivery_time, delivery_rating, restaurant_rating 
+FROM orders t1
+JOIN users t2 ON t1.user_id = t2.user_id
+JOIN restaurants t3 ON t1.r_id = t3.r_id
+
+SELECT r_name, MONTHNAME(date), SUM(amount) FROM join_order_data
+GROUP BY r_name
+
+    - Complex Views - Created from multiple tables with the help of joins, subquery etc.
+
+
+    -- Read only Vs Updatable Views --
+
+    - Read-only views: cannot be updated. They are used to simplify the process of querying data, but they cannot be used to modify or delete data in the underlying tables.
+
+    - Updatable views: Updatable views are views that allow you to modify, insert or delete data in the underlying tables through the view. They behave like normal tables, but with restrictions.
+        - if i change anything in view original table will be changed
+
+    -- Materialized Views -- (* * *)
+        - store the result of query
+        - Views not help to reduce execution time but Materialized View reduce execution time 
+
+
+~ ~ ~ ---------- User Defined Function ---------- ~ ~ ~
+
+    - Function
+        - Built in
+        - User defined
+            - User-defined functions (UDFs) in SQL are functions that are created by users to perform specific tasks. 
+
+# Ex - 01
+
+CREATE FUNCTION `hello_world` ()
+RETURNS VARCHAR(255)
+BEGIN
+ 
+RETURN "Hello world";
+END
+
+SELECT hello_world() AS message;
+
+SELECT hello_world() FROM person1; --> everything from person1 replace with hello_world
+
+SELECT UPPER(hello_world()) FROM person1;
+
+# Ex - 02
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `calculate_age`(dob DATE) RETURNS int(11)
+BEGIN
+	DECLARE age INTEGER;
+    SET age = ROUND(DATEDIFF(DATE(NOW()), dob) / 365);
+RETURN age;
+END
+
+SELECT calculate_age(dob) FROM persons; 
+
+# Ex - 03
+
+CREATE FUNCTION `proper_name`(name VARCHAR(255), gender VARCHAR(255), married VARCHAR(255))
+RETURNS VARCHAR(255)
+BEGIN
+
+	DECLARE title VARCHAR(255);
+    SET name = CONCAT(UPPER(LEFT(name, 1)), LOWER(SUBSTRING(name, 2)));
+    IF gender = 'Male' THEN SET title = CONCAT('Mr.', ' ', name);
+    ELSE
+		IF married = 'Yes' THEN SET title = CONCAT('Mrs.', ' ', name);
+        ELSE SET title = CONCAT('Ms.', ' ', name);
+        END IF;
+    END IF;
+
+RETURN title;
+END
+
+SELECT *, proper_name(name, gender, married) FROM persons
+
+# Ex - 04
+
+CREATE FUNCTION `format_date` (doj VARCHAR(255))
+RETURNS VARCHAR(255)
+BEGIN
+
+RETURN DATE_FORMAT(doj, '%D %b %y');
+END
+
+SELECT *, format_date(Date_of_Journey) FROM flights
+
+# Ex - 05
+
+CREATE FUNCTION `flights_between` (city1 VARCHAR(255), city2 VARCHAR(255))
+RETURNS INTEGER
+BEGIN
+
+RETURN (
+	SELECT COUNT(*) FROM flights
+    WHERE Source = city1 AND Destination = city2
+);
+END
+
+SELECT flights_between('Banglore', 'New Delhi') AS 'num_flights'
+

@@ -1,0 +1,95 @@
+~ ~ ~ ---------- Temporal Data-types ---------- ~ ~ ~
+
+    - DATE ->  for storing date value int the format YYYY-MM-DD 
+    - TIME -> for storing time value int the format YYYY-MM-DD 
+    - DATETIME -> for storing date and time value int the format YYYY-MM-DD YYYY-MM-DD 
+    - TIMESTAMP -> for storing date and time value int the format YYYY-MM-DD YYYY-MM-DD 
+    - YEAR -> for storing year value in the format YYYY or YY
+
+
+    -- Creating and populating temporal table --
+
+    - UBER -> user_id, cab_id, start_time, end_time
+CREATE TABLE uber_rides (
+	rider_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    user_id INTEGER,
+    cab_id INTEGER,
+    start_time DATETIME,
+    end_time DATETIME
+);
+
+INSERT INTO uber_rides(user_id, cab_id, start_time, end_time) VALUES
+(8, 32, '2023-05-23 10:23:00', '2023-03-23 12:19:31');
+
+SELECT CURRENT_DATE();
+SELECT CURRENT_TIME();
+SELECT NOW(); -> Date time both
+
+    -- Extraction function --
+
+SELECT *, DATE(start_time) FROM uber_rides;
+SELECT *, TIME(start_time) FROM uber_rides;
+SELECT *, YEAR(start_time) FROM uber_rides;
+SELECT *, MONTH(start_time) FROM uber_rides;
+SELECT *, MONTHNAME(start_time) FROM uber_rides;
+SELECT *, DAY(start_time) FROM uber_rides;
+SELECT *, DAYOFWEEK(start_time) FROM uber_rides;
+SELECT *, DAYNAME(start_time) FROM uber_rides;
+SELECT *, QUARTER(start_time) FROM uber_rides;
+SELECT *, HOUR(start_time) FROM uber_rides;
+SELECT *, MINUTE(start_time) FROM uber_rides;
+SELECT *, SECOND(start_time) FROM uber_rides;
+SELECT *, DAYOFYEAR(start_time) FROM uber_rides;
+SELECT *, WEEKOFYEAR(start_time) FROM uber_rides;
+SELECT *, LAST_DAY(start_time) FROM uber_rides;
+
+
+    -- Date-Time formatting --
+
+https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format 
+
+SELECT *, DATE_FORMAT(start_time, '%d / %b / %y') FROM uber_rides
+SELECT *, TIME_FORMAT(start_time, '%r') FROM uber_rides
+SELECT *, TIME_FORMAT(start_time, '%l:%i %p') FROM uber_rides
+
+    -- Type Conversion -- 
+    - Implicit
+SELECT '2025-01-23' > '2025-02-23' (convert automatically)
+
+    - Explicit (STR_TO_DATE())
+SELECT '2025-01-23' > STR_TO_DATE('03 Feb 2026', '%e %b %Y')
+
+SELECT DATEDIFF(CURRENT_DATE(), '2024-12-11') -> give me difference of date 
+SELECT TIMEDIFF(CURRENT_TIME(), '19:00:00')
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 YEAR)
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 MONTH)
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 DAY)
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 MINUTE)
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 SECOND)
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 12 HOUR) -> go forward
+SELECT NOW(), DATE_SUB(NOW(), INTERVAL 12 DAY) -> go backward
+
+    -- TIMESTAMP vs DATETIME -- 
+        - both used to store date and time 
+        - TIMESTAMP Range << DATETIME Range
+        - DATETIME 8 bytes - TIMESTAMP 4 bytes
+        - DATETIME store microsecond - TIMESTAMP store seconds
+        - DATETIME store as it is - TIMESTAMP store UTC time zone
+
+CREATE TABLE posts (
+	post_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+	user_id INTEGER,
+	content TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP
+)
+
+INSERT INTO posts (user_id, content) VALUES
+('1', 'this is hello world')
+
+UPDATE posts
+SET content = 'no more hello world'
+WHERE post_id = 1;
+
+SELECT * FROM posts
+
